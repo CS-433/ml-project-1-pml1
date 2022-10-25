@@ -109,17 +109,6 @@ def create_csv_submission(ids, y_pred, name):
 def accuracy(y, y_pred):
     return np.mean(y_pred == y)
 
-def build_k_indices(y, k_fold, seed):
-    """build k indices for k-fold.
-    return dimension: k-fold * interval
-    """
-    num_row = y.shape[0]
-    interval = int(num_row / k_fold)
-    np.random.seed(seed)
-    indices = np.random.permutation(num_row)
-    k_indices = [indices[k * interval: (k + 1) * interval] for k in range(k_fold)] 
-    return np.array(k_indices)
-
 def hyperparameter_tuning_GD(tx, y, k_fold, seed, initial_w, max_iters, gammas):
     """
     select hyperparameter for stochastic gradient descent
