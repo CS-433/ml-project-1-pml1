@@ -51,7 +51,7 @@ def predict_logistic(w, X):
 
 def predict(w, X):
     
-    y_pred = np.dot(X)
+    y_pred = np.dot(X, w)
     y_pred[np.where(y_pred <= 0)] = -1
     y_pred[np.where(y_pred > 0)] = 1
     
@@ -142,3 +142,54 @@ def create_csv_submission(ids, y_pred, name):
 
 def accuracy(y, y_pred):
     return np.mean(y_pred == y)
+
+def build_k_indices(y, k_fold, seed):
+    """build k indices for k-fold.
+    return dimension: k-fold * interval
+    """
+    num_row = y.shape[0]
+    interval = int(num_row / k_fold)
+    np.random.seed(seed)
+    indices = np.random.permutation(num_row)
+    k_indices = [indices[k * interval: (k + 1) * interval] for k in range(k_fold)] 
+    return np.array(k_indices)
+
+def hyperparameter_tuning_GD(tx, y, k_fold, seed, initial_w, max_iters, gammas):
+    """
+    select hyperparameter for stochastic gradient descent
+
+    Args:
+        tx: numpy array of shape (N,D), D is the number of features.
+        y: numpy array of shape (N,), N is the number of samples.
+        k-fold: integer.
+        seed: integer.
+        initial_w: initial weight, shape=(D,).
+        max_iters: number of iteration.
+        gammas: set of tested step size.
+
+    Returns:
+        gamma: optimal step size to achive high accuracy for testing set
+    """
+    acc = []
+    for ind, gamma_ in enumerate(gammas):
+        k_indices = build_k_indices(y, k_fold, seed)
+
+        val_acc = []
+        for k in range(k_fold):
+            val_y = y[k_indices[k, :]]
+            val_x = tx[k_indices[k, :]]
+            train_idx = np.vstack([k_indices[:k, :], k_indices[k+1:, :]]).flatten()
+            train_y = y[train_idx]
+            train_x = tx[train_idx]
+
+            w, _ = least_squares_GD(train_y, train_x, initial_w, max_iters, gamma_)
+            pred = val_x @ w
+            pred[pred > 0] = 1
+            pred[pred < 0] = -1
+            val_acc.append(np.mean(pred == val_y))
+
+        acc.append(sum(val_acc)/len(val_acc))
+    
+    index_min = np.argmin(acc)
+    gamma_ = gammas[index_min]
+    return gamma_
