@@ -153,7 +153,12 @@ def build_k_indices(y, k_fold, seed):
     indices = np.random.permutation(num_row)
     k_indices = [indices[k * interval: (k + 1) * interval] for k in range(k_fold)] 
     return np.array(k_indices)
-
+def build_poly(x, degree):
+    """polynomial basis functions for input data x, for j=0 up to j=degree."""
+    poly = np.ones((len(x), 1))
+    for deg in range(1, degree+1):
+        poly = np.c_[poly, np.power(x, deg)]
+    return poly
 def hyperparameter_tuning_GD(tx, y, k_fold, seed, initial_w, max_iters, gammas):
     """
     select hyperparameter for stochastic gradient descent
