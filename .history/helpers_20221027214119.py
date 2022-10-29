@@ -29,7 +29,7 @@ def standardize(x):
     mean_x = np.mean(x, axis = 0)
     std_x = np.std(x, axis = 0)
     x = (x - mean_x) / std_x
-    return x
+    return x, mean_x, std_x
 
 def build_model_data(label, data):
     """Form (y,tX) to get regression data in matrix form."""

@@ -23,7 +23,7 @@ from tqdm import tqdm
 #         losses.append(sgd_losses)
 #     return best_w, sgd_ws, losses
 
-def train_first_feature(y, tx, initial_ws, initial_gamma, num_iterations = 10, increase_limit = 0):
+def train_first_feature(y, tx, initial_ws, initial_gamma = 0.001, num_iterations = 10, increase_limit = 0):
     gamma = initial_gamma
     sgd_ws = initial_ws
     losses = []
@@ -42,5 +42,5 @@ def train_first_feature(y, tx, initial_ws, initial_gamma, num_iterations = 10, i
                 best_loss = sgd_losses
                 best_w = sgd_ws
         losses.append(sgd_losses)
-        print(f"Linear Regression SGD({i}/{num_iterations - 1}): loss={sgd_losses}")
-    return best_w, best_loss
+        
+    return best_w, sgd_ws, sgd_losses
