@@ -1,6 +1,5 @@
 from helpers import *
 from implementations import *
-from training_procedure import *
 
 def filter_data(X,col,angle_col,model,deg_cross_term,frequence,deg_cross_sin,_type_="default"):
     
@@ -51,6 +50,10 @@ def replaceFirstFeature(tx, initial_gamma):
         xx = np.hstack([correct, new_features_xx])
         xxN = np.hstack([ncorrect, new_features_xxN])
 
+    # # standardization
+    # xx = standardize(xx)
+    # xxN = standardize(xxN)
+
     # add the bias term 
     bias_term_xx = np.ones([xx.shape[0], 1])
     bias_term_xxN = np.ones([xxN.shape[0], 1])
@@ -62,6 +65,7 @@ def replaceFirstFeature(tx, initial_gamma):
     newFirst = xxN.dot(best_w)
     print(f"Best loss: {best_loss}")
     tx[:,0][tx[:,0]==-999] = newFirst
+    # tx[tx[:,0]==-999][:,0] = newFirst
 
     return tx
 

@@ -1,6 +1,5 @@
 from helpers import *
 from implementations import *
-from training_procedure import *
 
 def filter_data(X,col,angle_col,model,deg_cross_term,frequence,deg_cross_sin,_type_="default"):
     
@@ -16,54 +15,7 @@ def filter_data(X,col,angle_col,model,deg_cross_term,frequence,deg_cross_sin,_ty
                                build_poly_cross_terms(X[:,[x for x in angle_col_complement if x <= 29]],deg_cross_term),
                               sin_cos(build_add_minus_term(X[:,[x for x in angle_col if x <= 29]]), frequence, deg_cross_sin)], axis = 1)
 
-def replaceFirstFeature(tx, initial_gamma):
-    correct = tx[tx[:,0]!=-999][:,1:]
-    ncorrect = tx[tx[:,0]==-999][:, 1:]
 
-    # delete missing value columns 
-    correct = np.delete(correct, [3, 4, 5, 11, 22, 23, 24, 25, 26, 27], axis = 1)
-    ncorrect = np.delete(ncorrect, [3, 4, 5, 11, 22, 23, 24, 25, 26, 27], axis = 1)
-
-    # transform the categorical features into one-hot features
-    correct = np.hstack((correct, 
-    (correct[:, 17] == 0).astype(np.float64)[:, np.newaxis],
-    (correct[:, 17] == 1).astype(np.float64)[:, np.newaxis],
-    (correct[:, 17] == 2).astype(np.float64)[:, np.newaxis],
-    (correct[:, 17] == 3).astype(np.float64)[:, np.newaxis]))
-    correct = np.delete(correct, 17, axis = 1)
-
-    ncorrect = np.hstack((ncorrect, 
-    (ncorrect[:, 17] == 0).astype(np.float64)[:, np.newaxis],
-    (ncorrect[:, 17] == 1).astype(np.float64)[:, np.newaxis],
-    (ncorrect[:, 17] == 2).astype(np.float64)[:, np.newaxis],
-    (ncorrect[:, 17] == 3).astype(np.float64)[:, np.newaxis]))
-    ncorrect = np.delete(ncorrect, 17, axis = 1)
-
-    # standardization
-    correct[:, :-4] = standardize(correct[:, :-4])
-    ncorrect[:, :-4] = standardize(ncorrect[:, :-4])
-
-    num_feat = correct.shape[1]
-    # add cross quadratic terms
-    for i in range(num_feat):
-        new_features_xx = np.multiply(correct[:, i:num_feat], correct[:, 0:num_feat-i])
-        new_features_xxN = np.multiply(ncorrect[:, i:num_feat], ncorrect[:, 0:num_feat-i])
-        xx = np.hstack([correct, new_features_xx])
-        xxN = np.hstack([ncorrect, new_features_xxN])
-
-    # add the bias term 
-    bias_term_xx = np.ones([xx.shape[0], 1])
-    bias_term_xxN = np.ones([xxN.shape[0], 1])
-    xx = np.hstack([bias_term_xx, xx])
-    xxN = np.hstack([bias_term_xxN, xxN])
-
-    w_init = np.zeros(xx.shape[1])
-    best_w, best_loss = train_first_feature(tx[:,0][tx[:,0] != -999], xx, w_init, initial_gamma, 30, 0)
-    newFirst = xxN.dot(best_w)
-    print(f"Best loss: {best_loss}")
-    tx[:,0][tx[:,0]==-999] = newFirst
-
-    return tx
 
 def correctOutliers(xi, lower, upper, newVals):
     a = xi > upper

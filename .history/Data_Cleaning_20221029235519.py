@@ -1,6 +1,5 @@
 from helpers import *
 from implementations import *
-from training_procedure import *
 
 def filter_data(X,col,angle_col,model,deg_cross_term,frequence,deg_cross_sin,_type_="default"):
     
