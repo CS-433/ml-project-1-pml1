@@ -14,7 +14,20 @@ def filter_data(X,col,angle_col,model,deg_cross_term,frequence,deg_cross_sin,_ty
                                                       deg_cross_term+1),
                                build_poly_cross_terms(X[:,[x for x in angle_col_complement if x <= 29]],deg_cross_term),
                               sin_cos(build_add_minus_term(X[:,[x for x in angle_col if x <= 29]]), frequence, deg_cross_sin)], axis = 1)
+def correctOutliers(xi, lower, upper, newVals):
+    a = xi > upper
+    b = xi < lower
+    aorb = np.logical_or(a,b)
+    xxi = np.where(aorb, newVals, xi)
+    return xxi
 
+def handleOutliers(tx):
+    q3, q2, q1 = np.quantile(tx, [0.75, 0.5, 0.25], axis=0)
+    iqr = q3 - q1
+    upper = q3 + 1.5*iqr
+    lower = q1 - 1.5*iqr
+    tx2 = np.apply_along_axis(correctOutliers, axis=1, arr=tx, lower=lower, upper=upper, newVals=q2)
+    return tx2
 
 
 def split_according_num_split_jet(y,X,ids):
