@@ -27,7 +27,6 @@ def mean_squared_error_gd(y, tx, initial_w, max_iters, gamma):
         w: the best weights (resulting the smallest loss) during training
         loss: training loss (MSE) resulted from the best weights
     """
-    
     w = initial_w
     for n_iter in range(max_iters):
         w = w - gamma * compute_gradient(y, tx, w)
@@ -80,7 +79,6 @@ def mean_squared_error_sgd(y, tx, initial_w, max_iters, gamma):
         w: the best weights (resulting the smallest loss) during training
         loss: training loss (MSE) resulted from the best weights
     """
-
     w = initial_w
     for n_iters in range(max_iters):
         for y_batch, tx_batch in batch_iter(y, tx, batch_size=1, num_batches=tx.shape[0]):
