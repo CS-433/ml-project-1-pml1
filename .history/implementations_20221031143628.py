@@ -223,7 +223,7 @@ def sigmoid(x):
     return sup*1./(1.+np.exp(-x*sup)) + inf*np.exp(inf*x)/(np.exp(inf*x)+1.)
 
 
-def logit_loss(y, tx, w):
+def logit_loss(y,tx,w):
     """
     Compute the loss for logistic regression (Cross Entropy)
 
@@ -268,7 +268,7 @@ def logistic_regression(y, tx, initial_w ,max_iters,gamma):
     loss = logit_loss(y, tx, w)
     return w, loss
 
-def compute_gradient_reg_logit(y, tx, lambda_, w):
+def compute_gradient_reg_logit(y,tx,lambda_,w):
     """
     Compute the gradient for regularized logistic regression
     
@@ -281,7 +281,7 @@ def compute_gradient_reg_logit(y, tx, lambda_, w):
     """
     return compute_gradient_logit(y,tx,w) + 2*lambda_*w
 
-def reg_logit_loss(y, tx, w):
+def reg_logit_loss(y,tx,lambda_,w):
     """
     Compute the loss for regularized logistic regression
 
@@ -292,9 +292,9 @@ def reg_logit_loss(y, tx, w):
         out: the loss for the current w
     """
     X_tx = tx@w 
-    return logit_loss(y, tx, w)
+    return logit_loss(y,tx,w)
 
-def reg_logistic_regression(y, tx,lambda_, initial_w ,max_iters, gamma):
+def reg_logistic_regression(y, tx,lambda_, initial_w ,max_iters , gamma):
     """
     Regularized logistic regression using stochastic gradient descent.
     
@@ -312,13 +312,13 @@ def reg_logistic_regression(y, tx,lambda_, initial_w ,max_iters, gamma):
     w = initial_w
     for n_iters in range(max_iters):
         w = w - gamma * compute_gradient_reg_logit(y, tx, lambda_, w)
-    loss = reg_logit_loss(y, tx, w)
+    loss = reg_logit_loss(y, tx,lambda_, w)
 
     return w, loss 
 
 
 def training_procedure(y, tx, initial_gamma, initial_w = "Gaussian", type_ = "GD", num_iterations = 10, increase_limit = 0, verbose = True,lambda_ = None,batch_size=500):
-    "training models by different algorithms"
+    
     gamma = initial_gamma
     
     if initial_w == "Gaussian":

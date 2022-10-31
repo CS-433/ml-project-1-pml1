@@ -210,115 +210,50 @@ def hyperparameter_tuning_ridge_regression(x, y, degree, ratio, seed, lambdas):
     return lambda_
 
 def sigmoid(x):
-    """
-    Apply the sigmoid function element-wise to the input matrix (vector).
-    The sigmoid function is defined as sigma(x) = 1/(1+exp(-x))
-
-    :param x: The ndarray to apply expit to element-wise.
-    :return:
-        out: An ndarray after applying the sigmoid function, of the same shape as x.
-    """
-    sup = 1.*(x>=0)
-    inf = 1-sup
-    return sup*1./(1.+np.exp(-x*sup)) + inf*np.exp(inf*x)/(np.exp(inf*x)+1.)
+    #sup = 1.*(x>=0)
+    #inf = 1-sup
+    #return sup*1./(1.+np.exp(-x*sup)) + inf*np.exp(inf*x)/(np.exp(inf*x)+1.)
+    exp_x = np.exp(x)
+    return exp_x / (1 + exp_x)
 
 
-def logit_loss(y, tx, w):
-    """
-    Compute the loss for logistic regression (Cross Entropy)
-
-    :param y: labels for prediction
-    :param tx: features (input) for prediction
-    :param w: weights of the model
-    :return:
-        out: the loss for the current w
-    """
-    X_tx = tx@w
-    return ((X_tx<=100)*np.log(1+np.exp(X_tx)) + ((X_tx>100) - y)*X_tx).sum()/len(y)
+def logit_loss(y,tx,w):
+    #X_tx = tx@w
+   # return ((X_tx<=100)*np.log(1+np.exp(X_tx)) + ((X_tx>100) - y)*X_tx).mean()
+    pred = tx @ w
+    return np.mean(np.log(1 + np.exp(pred)) - y * pred)
 
 def compute_gradient_logit(y,tx,w):
-    """
-    Compute the gradient for logistic regression
-    
-    :param y: labels for prediction
-    :param tx: features (input) for prediction
-    :param w: weights of the model
-    :return:
-        out: the gradient for the current w
-    """
-    return tx.T@(sigmoid(tx@w)-y)/len(y)
+    #return tx.T@(sigmoid(tx@w)-y)/len(y) 
+    return np.mean(tx * (sigmoid(tx@w) - y)[:, np.newaxis], axis=0)
+
 
 def logistic_regression(y, tx, initial_w ,max_iters,gamma):
-    """
-    Logistic regression using stochastic gradient descent.
-
-    :param y: labels for prediction (0 and 1)
-    :param tx: features (input) for prediction
-    :param initial_w: initial weights of the model
-    :param max_iters: number of iterations (= the number of epochs here)
-    :param gamma: learning rate
-    :return:
-        w: the best weights (resulting the smallest loss) during training
-        loss: training loss (Cross entropy loss) resulted from the best weights
-    """
-
     w = initial_w
     for n_iters in range(max_iters):
         w = w - gamma * compute_gradient_logit(y, tx, w)
     loss = logit_loss(y, tx, w)
     return w, loss
 
-def compute_gradient_reg_logit(y, tx, lambda_, w):
-    """
-    Compute the gradient for regularized logistic regression
-    
-    :param y: labels for prediction
-    :param tx: features (input) for prediction
-    :param lambda_: the L2 regularization coefficient
-    :param w: weights of the model
-    :return:
-        out: the gradient for the current w
-    """
-    return compute_gradient_logit(y,tx,w) + 2*lambda_*w
+def compute_gradient_reg_logit(y,tx,lambda_,w):
+    return tx.T@(sigmoid(tx@w)-y) + lambda_*w
 
-def reg_logit_loss(y, tx, w):
-    """
-    Compute the loss for regularized logistic regression
-
-    :param y: labels for prediction
-    :param tx: features (input) for prediction
-    :param w: weights of the model
-    :return:
-        out: the loss for the current w
-    """
+def reg_logit_loss(y,tx,lambda_,w):
     X_tx = tx@w 
-    return logit_loss(y, tx, w)
+    return ((X_tx<=100)*np.log(1+np.exp((X_tx<=100)*X_tx)) + ((X_tx>100) - (1+y)/2)*X_tx).sum() + lambda_/2*np.linalg.norm(w)
 
-def reg_logistic_regression(y, tx,lambda_, initial_w ,max_iters, gamma):
-    """
-    Regularized logistic regression using stochastic gradient descent.
-    
-    :param y: labels for prediction (0 and 1)
-    :param tx: features (input) for prediction
-    :param lambda_: the L2 regularization coefficient
-    :param initial_w: initial weights of the model
-    :param max_iters: number of iterations (= the number of epochs here)
-    :param gamma: learning rate
-    :return:
-        w: the best weights (resulting the smallest loss) during training
-        loss: training loss (Cross entropy loss) resulted from the best weights
-    """
 
+def reg_logistic_regression(y, tx,lambda_, initial_w ,max_iters , gamma):
     w = initial_w
     for n_iters in range(max_iters):
-        w = w - gamma * compute_gradient_reg_logit(y, tx, lambda_, w)
-    loss = reg_logit_loss(y, tx, w)
+        w = w - gamma * compute_gradient_reg_logit(y, tx,lambda_, w)
+    loss = reg_logit_loss(y, tx,lambda_, w)
 
-    return w, loss 
+    return w, loss
 
 
 def training_procedure(y, tx, initial_gamma, initial_w = "Gaussian", type_ = "GD", num_iterations = 10, increase_limit = 0, verbose = True,lambda_ = None,batch_size=500):
-    "training models by different algorithms"
+    
     gamma = initial_gamma
     
     if initial_w == "Gaussian":

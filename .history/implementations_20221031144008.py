@@ -223,7 +223,7 @@ def sigmoid(x):
     return sup*1./(1.+np.exp(-x*sup)) + inf*np.exp(inf*x)/(np.exp(inf*x)+1.)
 
 
-def logit_loss(y, tx, w):
+def logit_loss(y,tx,w):
     """
     Compute the loss for logistic regression (Cross Entropy)
 
@@ -318,7 +318,7 @@ def reg_logistic_regression(y, tx,lambda_, initial_w ,max_iters, gamma):
 
 
 def training_procedure(y, tx, initial_gamma, initial_w = "Gaussian", type_ = "GD", num_iterations = 10, increase_limit = 0, verbose = True,lambda_ = None,batch_size=500):
-    "training models by different algorithms"
+    
     gamma = initial_gamma
     
     if initial_w == "Gaussian":
