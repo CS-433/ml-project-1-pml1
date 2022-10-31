@@ -298,7 +298,7 @@ def reg_logistic_regression(y, tx,lambda_, initial_w ,max_iters , gamma):
 
     w = initial_w
     for n_iters in range(max_iters):
-        w = w - gamma * compute_gradient_reg_logit(y, tx,lambda_, w)
+        w = w - gamma * compute_gradient_reg_logit(y_batch, tx_batch,lambda_, w)
     loss = reg_logit_loss(y, tx,lambda_, w)
 
     return w, loss

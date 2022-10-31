@@ -239,7 +239,7 @@ def logistic_regression(y, tx, initial_w ,max_iters,gamma):
 
     w = initial_w
     for n_iters in range(max_iters):
-        w = w - gamma * compute_gradient_logit(y, tx, w)
+        w = w - gamma * compute_gradient_logit(y_batch, tx_batch, w)
     loss = logit_loss(y, tx, w)
     return w, loss    
 
@@ -258,29 +258,6 @@ def reg_logit_loss(y,tx,lambda_,w):
     return (((X_tx<=100)*np.log(1+np.exp(X_tx)) + ((X_tx>100) - y)*X_tx).sum() + lambda_/2*np.linalg.norm(w))/len(y)
 
 
-# def reg_logistic_regression(y, tx,lambda_, initial_w ,max_iters , gamma):
-#     """
-#     Regularized logistic regression using stochastic gradient descent.
-    
-#     :param y: labels for prediction (0 and 1)
-#     :param tx: features (input) for prediction
-#     :param lambda_: the L2 regularization coefficient
-#     :param initial_w: initial weights of the model
-#     :param max_iters: number of iterations (= the number of epochs here)
-#     :param gamma: learning rate
-#     :return:
-#         w: the best weights (resulting the smallest loss) during training
-#         loss: training loss (Cross entropy loss) resulted from the best weights
-#     """
-
-#     w = initial_w
-#     for n_iters in range(max_iters):
-#         for y_batch, tx_batch in batch_iter(y, tx, batch_size=1, num_batches=tx.shape[0]):
-#             w = w - gamma * compute_gradient_reg_logit(y_batch, tx_batch,lambda_, w)
-#     loss = reg_logit_loss(y, tx,lambda_, w)
-
-#     return w, loss
-
 def reg_logistic_regression(y, tx,lambda_, initial_w ,max_iters , gamma):
     """
     Regularized logistic regression using stochastic gradient descent.
@@ -298,7 +275,8 @@ def reg_logistic_regression(y, tx,lambda_, initial_w ,max_iters , gamma):
 
     w = initial_w
     for n_iters in range(max_iters):
-        w = w - gamma * compute_gradient_reg_logit(y, tx,lambda_, w)
+        for y_batch, tx_batch in batch_iter(y, tx, batch_size=1, num_batches=tx.shape[0]):
+            w = w - gamma * compute_gradient_reg_logit(y_batch, tx_batch,lambda_, w)
     loss = reg_logit_loss(y, tx,lambda_, w)
 
     return w, loss
