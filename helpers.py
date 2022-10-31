@@ -56,7 +56,7 @@ def build_model_data(label, data):
 
 
 def predict_logistic(w, X):
-    
+    """Converts the continuous predictions to discrete prediction for sigmoid."""
     y_pred = sigmoid(np.dot(X, w))
     y_pred[np.where(y_pred <= 0.5)] = -1
     y_pred[np.where(y_pred > 0.5)] = 1
@@ -65,7 +65,7 @@ def predict_logistic(w, X):
 
 
 def predict(w, X):
-    
+    """Converts the continuous predictions to discrete prediction."""
     y_pred = np.dot(X, w)
     y_pred[np.where(y_pred <= 0)] = -1
     y_pred[np.where(y_pred > 0)] = 1
@@ -74,7 +74,7 @@ def predict(w, X):
 
 
 def sin_cos(X, frequence, degree,monome=False,d_m=0):
-    
+    """Generate the combinations of sinus and cosinus for the feature expansion."""
     poly = []
     for f in frequence:
         for i in range(X.shape[1]):
@@ -83,7 +83,7 @@ def sin_cos(X, frequence, degree,monome=False,d_m=0):
 
 
 def build_derived_quantities(X,model,concatenate = True):
-    
+    "Generate the data expansion by derived multiplications, depending on the model the sample is from"
     DER = [X[:,13]*np.cos(X[:,15]),X[:,13]*np.sin(X[:,15]),
            X[:,13]*np.cosh(X[:,14]),X[:,13]*np.sinh(X[:,14]),
            X[:,16]*np.cos(X[:,18]),X[:,16]*np.sin(X[:,18]),
@@ -118,7 +118,7 @@ def build_derived_quantities(X,model,concatenate = True):
 
 
 def build_add_minus_term(X):
-    
+    """Build a feature expansion by adding and substracting columns"""
     X = np.concatenate([np.zeros((X.shape[0],1)),X],axis =1)
     poly = []
     
@@ -130,7 +130,7 @@ def build_add_minus_term(X):
 
 
 def build_poly_cross_terms(X, d, add_higher_monome = False, d_monome = 2):
-    
+    """Generate the feature expansion for cross-terms multiplication"""
     X = np.concatenate([np.ones((X.shape[0],1)),X],axis =1)
     poly = []
     
@@ -161,6 +161,7 @@ def create_csv_submission(ids, y_pred, name):
 
 
 def accuracy(y, y_pred):
+    """Calculates the accuracy."""
     return np.mean(y_pred == y)
 
 def build_k_indices(y, k_fold, seed):
