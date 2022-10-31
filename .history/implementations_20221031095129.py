@@ -256,7 +256,7 @@ def compute_gradient_reg_logit(y,tx,lambda_,w):
 
 def reg_logit_loss(y,tx,lambda_,w):
     X_tx = tx@w 
-    return logit_loss(y,tx,w) 
+    return logit_loss(y,tx,w) + lambda_*np.dot(w.T, w)
 
 
 # def reg_logistic_regression(y, tx,lambda_, initial_w ,max_iters , gamma):

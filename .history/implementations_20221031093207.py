@@ -247,16 +247,15 @@ def logistic_regression(y, tx, initial_w ,max_iters,gamma):
 #     return tx.T@(sigmoid(tx@w)-y) + lambda_*w
 
 def compute_gradient_reg_logit(y,tx,lambda_,w):
-    return compute_gradient_logit(y,tx,w) + 2*lambda_*w
+    return tx.T@(sigmoid(tx@w)-y) + lambda_*w
 
 # def reg_logit_loss(y,tx,lambda_,w):
 #     X_tx = tx@w 
 #     return ((X_tx<=100)*np.log(1+np.exp((X_tx<=100)*X_tx)) + ((X_tx>100) - (1+y)/2)*X_tx).sum() + lambda_/2*np.linalg.norm(w)
 
-
 def reg_logit_loss(y,tx,lambda_,w):
     X_tx = tx@w 
-    return logit_loss(y,tx,w) 
+    return ((X_tx<=100)*np.log(1+np.exp(X_tx)) + ((X_tx>100) - y)*X_tx).sum()/len(y) + lambda_*np.linalg.norm(w)
 
 
 # def reg_logistic_regression(y, tx,lambda_, initial_w ,max_iters , gamma):
