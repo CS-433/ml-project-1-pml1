@@ -1,92 +1,16 @@
 from helpers import *
 from implementations import *
-from training_procedure import *
+import pickle
 
-def filter_data(X,col,angle_col,model,deg_cross_term,frequence,deg_cross_sin,_type_="default"):
+
+def prediction_on_test_set():
     
-    angle_col_complement = []
-    for c in col:
-        if not(c in angle_col):
-            angle_col_complement.append(c)
+    y, X, ids = load_csv_data("test.csv", sub_sample=False)
     
-    if _type_ == "default":
-              
-        return np.concatenate([build_poly_cross_terms(build_derived_quantities(X,model,concatenate=False),
-                                                      deg_cross_term+1),
-                               build_poly_cross_terms(X[:,[x for x in angle_col_complement if x <= 29]],deg_cross_term),
-                              sin_cos(build_add_minus_term(X[:,[x for x in angle_col if x <= 29]]), frequence, deg_cross_sin)], axis = 1)
-
-def replaceFirstFeature(tx, initial_gamma):
-    correct = tx[tx[:,0]!=-999][:,1:]
-    ncorrect = tx[tx[:,0]==-999][:, 1:]
-
-    # delete missing value columns 
-    correct = np.delete(correct, [3, 4, 5, 11, 22, 23, 24, 25, 26, 27], axis = 1)
-    ncorrect = np.delete(ncorrect, [3, 4, 5, 11, 22, 23, 24, 25, 26, 27], axis = 1)
-
-    # transform the categorical features into one-hot features
-    correct = np.hstack((correct, 
-    (correct[:, 17] == 0).astype(np.float64)[:, np.newaxis],
-    (correct[:, 17] == 1).astype(np.float64)[:, np.newaxis],
-    (correct[:, 17] == 2).astype(np.float64)[:, np.newaxis],
-    (correct[:, 17] == 3).astype(np.float64)[:, np.newaxis]))
-    correct = np.delete(correct, 17, axis = 1)
-
-    ncorrect = np.hstack((ncorrect, 
-    (ncorrect[:, 17] == 0).astype(np.float64)[:, np.newaxis],
-    (ncorrect[:, 17] == 1).astype(np.float64)[:, np.newaxis],
-    (ncorrect[:, 17] == 2).astype(np.float64)[:, np.newaxis],
-    (ncorrect[:, 17] == 3).astype(np.float64)[:, np.newaxis]))
-    ncorrect = np.delete(ncorrect, 17, axis = 1)
-
-    # standardization
-    correct[:, :-4] = standardize(correct[:, :-4])
-    ncorrect[:, :-4] = standardize(ncorrect[:, :-4])
-
-    num_feat = correct.shape[1]
-    # add cross quadratic terms
-    for i in range(num_feat):
-        new_features_xx = np.multiply(correct[:, i:num_feat], correct[:, 0:num_feat-i])
-        new_features_xxN = np.multiply(ncorrect[:, i:num_feat], ncorrect[:, 0:num_feat-i])
-        xx = np.hstack([correct, new_features_xx])
-        xxN = np.hstack([ncorrect, new_features_xxN])
-
-    # add the bias term 
-    bias_term_xx = np.ones([xx.shape[0], 1])
-    bias_term_xxN = np.ones([xxN.shape[0], 1])
-    xx = np.hstack([bias_term_xx, xx])
-    xxN = np.hstack([bias_term_xxN, xxN])
-
-    w_init = np.zeros(xx.shape[1])
-    best_w, best_loss = train_first_feature(tx[:,0][tx[:,0] != -999], xx, w_init, initial_gamma, 30, 0)
-    newFirst = xxN.dot(best_w)
-    print(f"Best loss: {best_loss}")
-    tx[:,0][tx[:,0]==-999] = newFirst
-
-    return tx
-
-def correctOutliers(xi, lower, upper, newVals):
-    a = xi > upper
-    b = xi < lower
-    aorb = np.logical_or(a,b)
-    xxi = np.where(aorb, newVals, xi)
-    return xxi
-
-def handleOutliers(tx):
-    q3, q2, q1 = np.quantile(tx, [0.75, 0.5, 0.25], axis=0)
-    iqr = q3 - q1
-    upper = q3 + 1.5*iqr
-    lower = q1 - 1.5*iqr
-    tx2 = np.apply_along_axis(correctOutliers, axis=1, arr=tx, lower=lower, upper=upper, newVals=q2)
-    return tx2
-
-
-def split_according_num_split_jet(y,X,ids):
-    """ This method split the dataset into three sub-dataset. One for each case PRI_num_jet = 0, PRI_num_jet = 1,
-    PRI_num_jet >= 2, since for each of this case the available features are not the same. Before using this method,
-    we should complete the first column of X, since the DER_mass_MMC is not always definedfor each of this case but 
-    is not meaningless.
-    """
+    w_0 = np.load('best_w_0_M3_for_0_1_2.npy',allow_pickle=True)
+    w_1 = np.load('best_w_1_M3_for_0_1_2.npy',allow_pickle=True)
+    w_2 = np.load('best_w_2_default_indicatrice.npy',allow_pickle=True)
+    
     ind_0 = np.where(X[:,22]==0)
     ind_1 = np.where(X[:,22]==1)
     ind_2 = np.where(X[:,22]>=2)
@@ -103,15 +27,224 @@ def split_according_num_split_jet(y,X,ids):
     angle_1 = [15,18,20,25,43,44,49]
     angle_2 = [15,18,20,28,25,43,44,49,54]
     
-    X_0 = filter_data(X[ind_0],col_0,angle_0,0,3,[1,2],2)
+    #information_normalisation = np.load('information_transformation_final.npz',allow_pickle=True)
+    with open('information_transformation_final.json', 'rb') as fp:
+        information_normalisation = pickle.load(fp)
     
-    X_1 = filter_data(X[ind_1],col_1,angle_1,1,3,[1,2],2)
     
-    X_2 = np.concatenate([filter_data(X[ind_2],col_2,angle_2,2,2,[1,2],2),
-                     (X[ind_2, 22] == 2).astype(np.float64).T,
-                     (X[ind_2, 22] == 3).astype(np.float64).T],axis = 1)
+    X_0 = filter_data(X[ind_0],col_0,angle_0,0,_type_ = "M3",prediction = True, 
+                      mean_transformation = information_normalisation["0"]["mean_log"],
+               sigma_transformation = information_normalisation["0"]["sigma_log"], 
+                      mean = information_normalisation["0"]["mean"], 
+                      sigma = information_normalisation["0"]["sigma"], median = information_normalisation["0"]["median"])
     
-    return {"0": {"data": X_0,
+    X_1 = filter_data(X[ind_1],col_1,angle_1,1,_type_ = "M3",prediction = True, 
+                      mean_transformation = information_normalisation["1"]["mean_log"],
+               sigma_transformation = information_normalisation["1"]["sigma_log"], 
+                      mean = information_normalisation["1"]["mean"], 
+                      sigma = information_normalisation["1"]["sigma"], median = information_normalisation["1"]["median"])
+    
+    
+    X_2 = np.concatenate([X[ind_2],(X[ind_2, 22] == 2).astype(np.float64).T,
+                              (X[ind_2, 22] == 3).astype(np.float64).T],axis = 1)
+    X_2 = filter_data(X_2,col_2,angle_2,2,prediction = True, 
+                      mean_transformation = information_normalisation["2"]["mean_log"],
+               sigma_transformation = information_normalisation["2"]["sigma_log"], 
+                      mean = information_normalisation["2"]["mean"], 
+                      sigma = information_normalisation["2"]["sigma"], median = information_normalisation["2"]["median"])
+    
+        
+    
+    nan = np.array([not np.isnan(x) for x in np.mean(X_0,axis = 0)])
+    
+    X_0 = X_0[:,np.where((np.std(X_0,axis=0)!=0)*nan)[0]]
+    X_1 = X_1[:,np.where(np.std(X_1,axis=0)!=0)[0]]
+    X_2 = X_2[:,np.where(np.std(X_2,axis=0)!=0)[0]]
+    
+    mean_0 = information_normalisation["0"]["mean"]
+    sigma_0 = information_normalisation["0"]["sigma"]
+    mean_1 = information_normalisation["1"]["mean"]
+    sigma_1 = information_normalisation["1"]["sigma"]
+    mean_2 = information_normalisation["2"]["mean"]
+    sigma_2 = information_normalisation["2"]["sigma"]
+    
+    X_0 = (X_0-mean_0)/sigma_0
+    X_1 = (X_1-mean_1)/sigma_1
+    X_2 = (X_2-mean_2)/sigma_2
+    
+    y[ind_0]  = predict(w_0, X_0)
+    y[ind_1]  = predict(w_1, X_1)
+    y[ind_2]  = predict(w_2, X_2)
+    
+    return y,ids
+    
+    
+    
+    
+    
+
+def filter_data(X,col,angle_col,model,_type_="default",standardize = True, prediction = False, mean_transformation = None,
+               sigma_transformation = None, mean = None, sigma = None, median = None):
+    
+    if not prediction:
+        median = np.median(X[X[:,0]!=-999,0])
+        X[X[:,0]==-999,0] = median
+
+        angle_col_complement = []
+        for c in col:
+            if not(c in angle_col):
+                angle_col_complement.append(c)
+
+        if _type_ == "default":
+            X_ = log_transformation(two_mode_data(X,col),col)
+            if standardize:
+                m= np.mean(X_,axis=0)
+                sigma = np.std(X_,axis=0)
+                X_ =(X_ - m)/sigma
+            return [np.concatenate([build_poly_cross_terms(build_derived_quantities(X,model,concatenate=False),2),
+                                   build_poly_cross_terms(X_[:,[x for x in angle_col_complement if x <= 29]],3),
+                                 sin_cos(build_add_minus_term(X[:,[x for x in angle_col if x <= 29]]), [1,2], 1)], axis = 1),
+                                    m, sigma,median]
+        elif _type_ == "M1":
+            X_ = log_transformation(two_mode_data(X,col),col)
+            if standardize:
+                m= np.mean(X_,axis=0)
+                sigma = np.std(X_,axis=0)
+                X_ =(X_ - m)/sigma
+            return [np.concatenate([build_poly_cross_terms(build_derived_quantities(X,model,concatenate=False),3),
+                                   build_poly_cross_terms(X_[:,[x for x in angle_col_complement if x <= 29]],3),
+                                 sin_cos(build_add_minus_term(X[:,[x for x in angle_col if x <= 29]]), [0.5,1,2], 1)], axis = 1),
+                                    m, sigma,median]
+        elif _type_ == "M2":
+            X_ = log_transformation(two_mode_data(X,col),col)
+            if standardize:
+                m= np.mean(X_,axis=0)
+                sigma = np.std(X_,axis=0)
+                X_ =(X_ - m)/sigma
+            return [np.concatenate([build_poly_cross_terms(build_derived_quantities(X,model,concatenate=False),2),
+                                   build_poly_cross_terms(X_[:,[x for x in angle_col_complement if x <= 29]],3),
+                                 sin_cos(build_add_minus_term(X[:,[x for x in angle_col if x <= 29]]), [0.25,0.5,1,2], 2)], axis = 1),
+                                    m, sigma,median]
+        elif _type_ == "M3":
+            X_ = log_transformation(two_mode_data(X,col),col)
+            if standardize:
+                m= np.mean(X_,axis=0)
+                sigma = np.std(X_,axis=0)
+                X_ =(X_ - m)/sigma
+            return [np.concatenate([build_poly_cross_terms(build_derived_quantities(X,model,concatenate=False),2,True,13),
+                                   build_poly_cross_terms(X_[:,[x for x in angle_col_complement if x <= 29]],3,True,13),
+                                 sin_cos(build_add_minus_term(X[:,[x for x in angle_col if x <= 29]]), [1,2], 2,True,5)], axis = 1),
+                                    m, sigma,median]
+    
+    else:
+        
+        X[X[:,0]==-999,0] = median
+
+        angle_col_complement = []
+        for c in col:
+            if not(c in angle_col):
+                angle_col_complement.append(c)
+
+        if _type_ == "default":
+            X_ = log_transformation(two_mode_data(X,col),col)
+            if standardize:
+                X_ =(X_ - mean_transformation)/sigma_transformation
+            return np.concatenate([build_poly_cross_terms(build_derived_quantities(X,model,concatenate=False),2),
+                                   build_poly_cross_terms(X_[:,[x for x in angle_col_complement if x <= 29]],3),
+                                 sin_cos(build_add_minus_term(X[:,[x for x in angle_col if x <= 29]]), [1,2], 1)], axis = 1)
+        elif _type_ == "M1":
+            X_ = log_transformation(two_mode_data(X,col),col)
+            if standardize:
+                X_ =(X_ - mean_transformation)/sigma_transformation
+            return np.concatenate([build_poly_cross_terms(build_derived_quantities(X,model,concatenate=False),3),
+                                   build_poly_cross_terms(X_[:,[x for x in angle_col_complement if x <= 29]],3),
+                                 sin_cos(build_add_minus_term(X[:,[x for x in angle_col if x <= 29]]), [0.5,1,2], 1)], axis = 1)
+        elif _type_ == "M2":
+            X_ = log_transformation(two_mode_data(X,col),col)
+            if standardize:
+                X_ =(X_ - mean_transformation)/sigma_transformation
+            return np.concatenate([build_poly_cross_terms(build_derived_quantities(X,model,concatenate=False),2),
+                                   build_poly_cross_terms(X_[:,[x for x in angle_col_complement if x <= 29]],3),
+                            sin_cos(build_add_minus_term(X[:,[x for x in angle_col if x <= 29]]), [0.25,0.5,1,2], 2)], axis = 1)
+        elif _type_ == "M3":
+            X_ = log_transformation(two_mode_data(X,col),col)
+            if standardize:
+                X_ =(X_ - mean_transformation)/sigma_transformation
+            return np.concatenate([build_poly_cross_terms(build_derived_quantities(X,model,concatenate=False),2,True,13),
+                                   build_poly_cross_terms(X_[:,[x for x in angle_col_complement if x <= 29]],3,True,13),
+                            sin_cos(build_add_minus_term(X[:,[x for x in angle_col if x <= 29]]), [1,2], 2,True,5)], axis = 1)
+
+def log_transformation(X,col):
+    col_skewed = [0,1,2,3,4,5,8,9,10,13,16,19,21,23,26,29]
+    new_col = []
+    for i in col_skewed:
+        if i in col:
+            new_col.append(i)
+    X[:,new_col] = np.log(X[:,new_col]-np.min(X[:,new_col],axis=0)+1)
+    return X
+
+def two_mode_data(X,col):
+    col_mode = [11,12]
+    crit_val = [-0.356,0.454]
+    new_col = []
+    new_crit = []
+    for i,c in enumerate(col_mode):
+        if c in col:
+            new_col.append(c)
+            new_crit.append(crit_val[i])
+    inf = 1*(X[:,new_col]<new_crit).reshape((X.shape[0],len(new_col)))
+    return np.concatenate([X,inf],axis = 1)
+
+def split_according_num_split_jet(y,X,ids, model_2_indicatrice = True):
+    
+    ind_0 = np.where(X[:,22]==0)
+    ind_1 = np.where(X[:,22]==1)
+    ind_2 = np.where(X[:,22]>=2)
+    
+    # features to keep for each model
+    col_0 = [0,1,2,3,7,8,9,10,11,13,14,15,16,17,18,19,20,21,29,30,
+             31,32,33,34,35,36,37,38,39,40,41,42,43,44]
+    col_1 = [0,1,2,3,7,8,9,10,11,13,14,15,16,17,18,19,20,21,23,24,
+             25,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,
+             47,48,49]
+    col_2 = np.arange(0,55,1)
+    
+    angle_0 = [15,18,20,43,44]
+    angle_1 = [15,18,20,25,43,44,49]
+    angle_2 = [15,18,20,28,25,43,44,49,54]
+    
+    
+    
+    X_0, m_0, s_0, median_0 = filter_data(X[ind_0],col_0,angle_0,0,_type_ = "M3")
+    
+    X_1, m_1, s_1, median_1 = filter_data(X[ind_1],col_1,angle_1,1,_type_ = "M3")
+    
+    if model_2_indicatrice:
+        X_2 = np.concatenate([X[ind_2],(X[ind_2, 22] == 2).astype(np.float64).T,
+                              (X[ind_2, 22] == 3).astype(np.float64).T],axis = 1)
+        X_2, m_2, s_2, median_2 = filter_data(X_2,col_2,angle_2,2)
+    else:
+        X_2, m_2, s_2, median_2 = filter_data(X[ind_2],col_2,angle_2,2)#,_type_ = "M3")
+        X_2 = np.concatenate([X_2,(X[ind_2, 22] == 2).astype(np.float64).T,(X[ind_2, 22] == 3).astype(np.float64).T],axis = 1)
+    
+    nan = np.array([not np.isnan(x) for x in np.mean(X_0,axis = 0)])
+    
+    X_0 = X_0[:,np.where((np.std(X_0,axis=0)!=0)*nan)[0]]
+    X_1 = X_1[:,np.where(np.std(X_1,axis=0)!=0)[0]]
+    X_2 = X_2[:,np.where(np.std(X_2,axis=0)!=0)[0]]
+    
+    mean_0 = np.mean(X_0,axis = 0)
+    sigma_0 = np.std(X_0,axis = 0)
+    mean_1 = np.mean(X_1,axis = 0)
+    sigma_1 = np.std(X_1,axis = 0)
+    mean_2 = np.mean(X_2,axis = 0)
+    sigma_2 = np.std(X_2,axis = 0)
+    
+    X_0 = (X_0-mean_0)/sigma_0
+    X_1 = (X_1-mean_1)/sigma_1
+    X_2 = (X_2-mean_2)/sigma_2
+    
+    return [{"0": {"data": X_0,
                   "label": y[ind_0],
                   "ids": ids[ind_0],
                   "ind": ind_0},
@@ -122,7 +255,23 @@ def split_according_num_split_jet(y,X,ids):
            "2": {"data": X_2,
                   "label": y[ind_2],
                   "ids": ids[ind_2],
-                  "ind": ind_2}}
+                  "ind": ind_2}},
+           {"0": {"mean_log": m_0,
+                  "sigma_log": s_0,
+                  "mean": mean_0,
+                  "sigma": sigma_0,
+                  "median": median_0},
+            "1": {"mean_log": m_1,
+                  "sigma_log": s_1,
+                  "mean": mean_1,
+                  "sigma": sigma_1,
+                  "median": median_1},
+            "2": {"mean_log": m_2,
+                  "sigma_log": s_2,
+                  "mean": mean_2,
+                  "sigma": sigma_2,
+                  "median": median_2},
+           }]
 
 def DER_mass_MMC_completion(type_,X):
     if type_ == "mean":

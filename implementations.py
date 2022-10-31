@@ -1,4 +1,6 @@
 import numpy as np
+from helpers import *
+from tqdm import tqdm
 
 def compute_mse(y, tx, w):
     return 0.5 * np.mean((y - tx@w)**2)
@@ -7,27 +9,7 @@ def compute_gradient(y, tx, w):
     e = y - np.dot(tx, w)
     return -np.dot(tx.T, e) / len(y)
 
-# def least_squares_GD(y, tx, initial_w, max_iters, gamma):
-#     w = initial_w
-#     for n_iter in range(max_iters):
-#         w = w - gamma * compute_gradient(y, tx, w)
-#     loss = compute_mse(y, tx, w)
-#     return w, loss
-
-def mean_squared_error_gd(y, tx, initial_w, max_iters, gamma):
-    """
-    Linear regression using gradient descent.
-
-    :param y: labels for prediction
-    :param tx: features (input) for prediction
-    :param initial_w: initial weights of the model
-    :param max_iters: number of iterations
-    :param gamma: learning rate
-    :return:
-        w: the best weights (resulting the smallest loss) during training
-        loss: training loss (MSE) resulted from the best weights
-    """
-    
+def least_squares_GD(y, tx, initial_w, max_iters, gamma):
     w = initial_w
     for n_iter in range(max_iters):
         w = w - gamma * compute_gradient(y, tx, w)
@@ -59,34 +41,22 @@ def batch_iter(y, tx, batch_size=1, num_batches=2500, shuffle=True):
         if start_index != end_index:
             yield shuffled_y[start_index:end_index], shuffled_tx[start_index:end_index]
 
-# def least_squares_SGD(y, tx, initial_w, max_iters, gamma):
-#     w = initial_w
-#     for n_iters in range(max_iters):
-#         for y_batch, tx_batch in batch_iter(y, tx, batch_size=1, num_batches=tx.shape[0]):
-#             w = w - gamma * compute_gradient(y_batch, tx_batch, w)
-#     loss = compute_mse(y, tx, w)
-#     return w, loss
-
-def mean_squared_error_sgd(y, tx, initial_w, max_iters, gamma):
-    """
-    Linear regression using stochastic gradient descent.
-
-    :param y: labels for prediction
-    :param tx: features (input) for prediction
-    :param initial_w: initial weights of the model
-    :param max_iters: number of iterations (= the number of epochs here)
-    :param gamma: learning rate
-    :return:
-        w: the best weights (resulting the smallest loss) during training
-        loss: training loss (MSE) resulted from the best weights
-    """
-
+def least_squares_SGD(y, tx, initial_w, max_iters, gamma):
     w = initial_w
     for n_iters in range(max_iters):
         for y_batch, tx_batch in batch_iter(y, tx, batch_size=1, num_batches=tx.shape[0]):
             w = w - gamma * compute_gradient(y_batch, tx_batch, w)
     loss = compute_mse(y, tx, w)
     return w, loss
+
+def least_squares_SGD_batch(y, tx, initial_w, max_iters, gamma,batch_size ):
+    w = initial_w
+    for n_iters in range(max_iters):
+        for y_batch, tx_batch in batch_iter(y, tx, batch_size, num_batches=int(tx.shape[0]/batch_size)):
+            w = w - gamma * compute_gradient(y_batch, tx_batch, w)
+    loss = compute_mse(y, tx, w)
+    return w, loss
+
 
 def least_squares(y, tx):
     """Calculate the least squares solution.
@@ -109,7 +79,7 @@ def least_squares(y, tx):
 
 def ridge_regression(y, tx, lambda_):
     """implement ridge regression.
-
+    
     Args:
         y: numpy array of shape (N,), N is the number of samples.
         tx: numpy array of shape (N,D), D is the number of features.
@@ -182,126 +152,88 @@ def hyperparameter_tuning_ridge_regression(x, y, degree, ratio, seed, lambdas):
     return lambda_
 
 def sigmoid(x):
-    sup = 1.*(x>=0)
-    inf = 1-sup
-    return sup*1./(1.+np.exp(-x*sup)) + inf*np.exp(inf*x)/(np.exp(inf*x)+1.)
-
-
-# def logit_loss(y,tx,w):
-#     X_tx = tx@w
-#     return ((X_tx<=100)*np.log(1+np.exp(X_tx)) + ((X_tx>100) - y)*X_tx).sum()
+    #sup = 1.*(x>=0)
+    #inf = 1-sup
+    #return sup*1./(1.+np.exp(-x*sup)) + inf*np.exp(inf*x)/(np.exp(inf*x)+1.)
+    exp_x = np.exp(x)
+    return exp_x / (1 + exp_x)
 
 
 def logit_loss(y,tx,w):
-    X_tx = tx@w
-    return ((X_tx<=100)*np.log(1+np.exp(X_tx)) + ((X_tx>100) - y)*X_tx).sum()/len(y)
-
-# def compute_gradient_logit(y,tx,w):
-#     return tx.T@(sigmoid(tx@w)-y) 
+    #X_tx = tx@w
+   # return ((X_tx<=100)*np.log(1+np.exp(X_tx)) + ((X_tx>100) - y)*X_tx).mean()
+    pred = tx @ w
+    return np.mean(np.log(1 + np.exp(pred)) - y * pred)
 
 def compute_gradient_logit(y,tx,w):
-    return tx.T@(sigmoid(tx@w)-y)/len(y)
+    #return tx.T@(sigmoid(tx@w)-y)/len(y) 
+    return np.mean(tx * (sigmoid(tx@w) - y)[:, np.newaxis], axis=0)
 
-# def logistic_regression(y, tx, initial_w ,max_iters,gamma):
-#     """
-#     Logistic regression using stochastic gradient descent.
-
-#     :param y: labels for prediction (0 and 1)
-#     :param tx: features (input) for prediction
-#     :param initial_w: initial weights of the model
-#     :param max_iters: number of iterations (= the number of epochs here)
-#     :param gamma: learning rate
-#     :return:
-#         w: the best weights (resulting the smallest loss) during training
-#         loss: training loss (Cross entropy loss) resulted from the best weights
-#     """
-
-#     w = initial_w
-#     for n_iters in range(max_iters):
-#         for y_batch, tx_batch in batch_iter(y, tx, batch_size=1, num_batches=tx.shape[0]):
-#             w = w - gamma * compute_gradient_logit(y_batch, tx_batch, w)
-#     loss = logit_loss(y, tx, w)
-#     return w, loss
 
 def logistic_regression(y, tx, initial_w ,max_iters,gamma):
-    """
-    Logistic regression using stochastic gradient descent.
-
-    :param y: labels for prediction (0 and 1)
-    :param tx: features (input) for prediction
-    :param initial_w: initial weights of the model
-    :param max_iters: number of iterations (= the number of epochs here)
-    :param gamma: learning rate
-    :return:
-        w: the best weights (resulting the smallest loss) during training
-        loss: training loss (Cross entropy loss) resulted from the best weights
-    """
-
     w = initial_w
     for n_iters in range(max_iters):
         w = w - gamma * compute_gradient_logit(y, tx, w)
     loss = logit_loss(y, tx, w)
-    return w, loss    
-
-# def compute_gradient_reg_logit(y,tx,lambda_,w):
-#     return tx.T@(sigmoid(tx@w)-y) + lambda_*w
+    return w, loss
 
 def compute_gradient_reg_logit(y,tx,lambda_,w):
-    return compute_gradient_logit(y,tx,w) + 2*lambda_*w
-
-# def reg_logit_loss(y,tx,lambda_,w):
-#     X_tx = tx@w 
-#     return ((X_tx<=100)*np.log(1+np.exp((X_tx<=100)*X_tx)) + ((X_tx>100) - (1+y)/2)*X_tx).sum() + lambda_/2*np.linalg.norm(w)
-
+    return tx.T@(sigmoid(tx@w)-y) + lambda_*w
 
 def reg_logit_loss(y,tx,lambda_,w):
     X_tx = tx@w 
-    return logit_loss(y,tx,w) 
+    return ((X_tx<=100)*np.log(1+np.exp((X_tx<=100)*X_tx)) + ((X_tx>100) - (1+y)/2)*X_tx).sum() + lambda_/2*np.linalg.norm(w)
 
-
-# def reg_logistic_regression(y, tx,lambda_, initial_w ,max_iters , gamma):
-#     """
-#     Regularized logistic regression using stochastic gradient descent.
-    
-#     :param y: labels for prediction (0 and 1)
-#     :param tx: features (input) for prediction
-#     :param lambda_: the L2 regularization coefficient
-#     :param initial_w: initial weights of the model
-#     :param max_iters: number of iterations (= the number of epochs here)
-#     :param gamma: learning rate
-#     :return:
-#         w: the best weights (resulting the smallest loss) during training
-#         loss: training loss (Cross entropy loss) resulted from the best weights
-#     """
-
-#     w = initial_w
-#     for n_iters in range(max_iters):
-#         for y_batch, tx_batch in batch_iter(y, tx, batch_size=1, num_batches=tx.shape[0]):
-#             w = w - gamma * compute_gradient_reg_logit(y_batch, tx_batch,lambda_, w)
-#     loss = reg_logit_loss(y, tx,lambda_, w)
-
-#     return w, loss
 
 def reg_logistic_regression(y, tx,lambda_, initial_w ,max_iters , gamma):
-    """
-    Regularized logistic regression using stochastic gradient descent.
-    
-    :param y: labels for prediction (0 and 1)
-    :param tx: features (input) for prediction
-    :param lambda_: the L2 regularization coefficient
-    :param initial_w: initial weights of the model
-    :param max_iters: number of iterations (= the number of epochs here)
-    :param gamma: learning rate
-    :return:
-        w: the best weights (resulting the smallest loss) during training
-        loss: training loss (Cross entropy loss) resulted from the best weights
-    """
-
     w = initial_w
     for n_iters in range(max_iters):
-        w = w - gamma * compute_gradient_reg_logit(y, tx, lambda_, w)
+        w = w - gamma * compute_gradient_reg_logit(y, tx,lambda_, w)
     loss = reg_logit_loss(y, tx,lambda_, w)
 
     return w, loss
+
+
+def training_procedure(y, tx, initial_gamma, initial_w = "Gaussian", type_ = "GD", num_iterations = 10, increase_limit = 0, verbose = True,lambda_ = None,batch_size=500):
+    
+    gamma = initial_gamma
+    
+    if initial_w == "Gaussian":
+        w = np.random.normal(scale = 1/np.sqrt(tx.shape[0]), size=(tx.shape[1]))
+    
+    losses = []
+    best_loss = 1e10
+    best_w = w
+    num_increases = 0
+    for i in tqdm(range(num_iterations)):
+        
+        if type_ == "GD":
+            w, loss = least_squares_GD(y, tx, w, 1, gamma)
+        elif type_ == "logistic":
+            w, loss = logistic_regression(y, tx, w, 1, gamma)
+        elif type_ == "SGD_batch":
+            w, loss = least_squares_SGD_batch(y, tx, w, 1, gamma,batch_size )
+            
+        if i > 0 and losses[-1] < loss:
+            num_increases += 1
+            if num_increases > increase_limit :
+                gamma = gamma / 5
+        else:
+            num_increases = 0
+            if loss < best_loss:
+                best_loss = loss
+                best_w = w
+        losses.append(loss)
+        if verbose and i%500 == 0:
+            print("----------------------------------------------------")
+            print(f"At iteration {i}, the loss is {loss:.6f} while the best loss is {best_loss:.6f}.")
+            print("----------------------------------------------------")
+            if i%500==0:
+                y_pred = tx @ w
+                y_pred[y_pred > 0] = 1
+                y_pred[y_pred < 0] = -1
+                print('Accuracy:', np.mean(y_pred == y))
+            
+    return best_w, w, losses
 
 

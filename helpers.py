@@ -24,12 +24,27 @@ def load_csv_data(data_path, sub_sample=False):
 
     return yb, input_data, ids
 
+def create_csv_submission(ids, y_pred, name):
+    """
+    Creates an output file in .csv format for submission to Kaggle or AIcrowd
+    Arguments: ids (event ids associated with each prediction)
+               y_pred (predicted class labels)
+               name (string name of .csv output file to be created)
+    """
+    with open(name, "w") as csvfile:
+        fieldnames = ["Id", "Prediction"]
+        writer = csv.DictWriter(csvfile, delimiter=",", fieldnames=fieldnames)
+        writer.writeheader()
+        for r1, r2 in zip(ids, y_pred):
+            writer.writerow({"Id": int(r1), "Prediction": int(r2)})
+
+
 def standardize(x):
     """Standardize the original data set."""
-    mean_x = np.mean(x, axis = 0)
-    std_x = np.std(x, axis = 0)
+    #mean_x = np.mean(x,axis = 0)
+    std_x = np.std(x,  axis = 0)
     x = (x - mean_x) / std_x
-    return x
+    return x, mean_x, std_x
 
 def build_model_data(label, data):
     """Form (y,tX) to get regression data in matrix form."""
@@ -58,13 +73,13 @@ def predict(w, X):
     return y_pred
 
 
-def sin_cos(X, frequence, degree):
+def sin_cos(X, frequence, degree,monome=False,d_m=0):
     
     poly = []
     for f in frequence:
         for i in range(X.shape[1]):
             poly.append(np.sin(f*X[:,i]))
-    return build_poly_cross_terms(np.array(poly).T,degree)
+    return build_poly_cross_terms(np.array(poly).T,degree,monome,d_m)
 
 
 def build_derived_quantities(X,model,concatenate = True):
@@ -114,14 +129,19 @@ def build_add_minus_term(X):
     return np.array(poly).T[:,1:]
 
 
-def build_poly_cross_terms(X, d):
+def build_poly_cross_terms(X, d, add_higher_monome = False, d_monome = 2):
     
     X = np.concatenate([np.ones((X.shape[0],1)),X],axis =1)
     poly = []
     
-    for ind in itertools.combinations_with_replacement(X.T,d):
-        poly.append(functools.reduce(lambda x,y:x*y,ind))
+    if d != 0:
+        for ind in itertools.combinations_with_replacement(X.T,d):
+            poly.append(functools.reduce(lambda x,y:x*y,ind))
 
+    if add_higher_monome:
+        for i in range(d+1,d+d_monome+1):
+            for j in range(1,X.shape[1]):
+                poly.append(X[:,j]**i)
     return np.array(poly).T[:,1:]
 
 
@@ -154,13 +174,6 @@ def build_k_indices(y, k_fold, seed):
     k_indices = [indices[k * interval: (k + 1) * interval] for k in range(k_fold)] 
     return np.array(k_indices)
 
-def build_poly(x, degree):
-    """polynomial basis functions for input data x, for j=0 up to j=degree."""
-    poly = np.ones((len(x), 1))
-    for deg in range(1, degree+1):
-        poly = np.c_[poly, np.power(x, deg)]
-    return poly
-    
 def hyperparameter_tuning_GD(tx, y, k_fold, seed, initial_w, max_iters, gammas):
     """
     select hyperparameter for stochastic gradient descent
